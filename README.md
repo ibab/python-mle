@@ -1,4 +1,4 @@
-# pymle
+# python-mle
 
 A Python package for performing Maximum Likelihood Estimates efficiently.
 
@@ -6,7 +6,7 @@ A Python package for performing Maximum Likelihood Estimates efficiently.
 
 ```python
 # Create model
-from pymle import Normal, Mix2, var, par
+from mle import Normal, Mix2, var, par
 
 x = var('x')
 mu = par('mu')

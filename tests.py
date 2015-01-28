@@ -1,6 +1,6 @@
 
 def test_distribution():
-    from pymle import Normal, var, par
+    from mle import Normal, var, par
     import theano.tensor as T
 
     x = var('x')
