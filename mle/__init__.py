@@ -7,6 +7,8 @@ import numpy as np
 from math import pi
 import logging
 
+__all__ = ['var', 'par', 'Normal', 'Uniform', 'Mix2']
+
 def alltrue(vals):
     ret = 1
     for c in vals:
