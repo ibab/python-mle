@@ -28,18 +28,21 @@ sigma2 = par('sigma2')
 dist1 = Normal(x, mu, sigma1)
 dist2 = Normal(x, mu, sigma2)
 model = Mix2(frac, dist1, dist2)
+# Mixture model with two Gaussians centered on each other
 
 # Generate data
-
 import numpy as np
 from numpy import append
 from numpy.random import normal, shuffle
+from scipy.stats import bernoulli
 
-xs = append(normal(0, 1, 1000), normal(0, 1.5, 1000))
+N = 1000
+N_1 = bernoulli.rvs(0.5, size=1000)
+N_2 = N - N_1
+xs = append(normal(0, 1, N_1), normal(0, 1.5, N_2))
 shuffle(xs)
 
 # Fit model
-
 init = {'mu': 0, 'sigma1': 1, 'sigma2': 3, 'frac': 0.6}
 print(model.fit({'x': xs}, init))
 ```
