@@ -140,7 +140,7 @@ class Normal(Distribution):
         x = self.x
         mu = self.mu
         sigma = self.sigma
-        return bound(-1 / sigma**2 * (x - mu)**2 + T.log(1 / (sigma**2 * 2 * pi)) / 2., sigma > 0)
+        return bound(T.log(1/T.sqrt(2*pi*sigma**2) * T.exp(-0.5 * (x-mu)**2/sigma**2)), sigma > 0)
 
 class Mix2(Distribution):
     def __init__(self, frac, dist1, dist2, *args, **kwargs):
