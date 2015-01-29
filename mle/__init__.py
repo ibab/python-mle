@@ -1,10 +1,10 @@
-
 from scipy.optimize import minimize
 from theano import function
 import theano.tensor as T
 from numpy import inf
 import numpy as np
 from math import pi
+from collections import OrderedDict as OD
 import logging
 
 __all__ = ['var', 'par', 'Normal', 'Uniform', 'Mix2']
@@ -46,9 +46,9 @@ class Parameter(object):
 
 class Distribution(object):
     def __init__(self):
-        self.var = dict()
-        self.param = dict()
-        self.dist = dict()
+        self.var = OD()
+        self.param = OD()
+        self.dist = OD()
 
     def _add_var(self, var):
         self.var[var.name] = var
@@ -64,17 +64,25 @@ class Distribution(object):
 
     def get_vars(self):
         ret = []
+        unique = []
+        ret += self.var.values()
         for dist in self.dist.values():
             ret += dist.get_vars()
-        ret += self.var.values()
-        return set(ret)
+        for par in ret:
+            if par not in unique:
+                unique.append(par)
+        return unique
 
     def get_params(self):
         ret = []
+        unique = []
+        ret += self.param.values()
         for dist in self.dist.values():
             ret += dist.get_params()
-        ret += self.param.values()
-        return set(ret)
+        for par in ret:
+            if par not in unique:
+                unique.append(par)
+        return unique
 
     def get_dists(self):
         return self.dist.values()
@@ -87,7 +95,7 @@ class Distribution(object):
         data_args = []
 
         for var in variables:
-            if not var.name in data:
+            if var.name not in data:
                 raise ValueError('Random variable {} required by model not found in dataset'.format(var.name))
             var_args.append(var.tvar)
             data_args.append(data[var.name])
@@ -95,9 +103,10 @@ class Distribution(object):
         par_args = []
         x0 = []
         for par in parameters:
-            if not par.name in init:
+            if par.name not in init:
                 raise ValueError('No initial value specified for Parameter {}'.format(par.name))
             par_args.append(par.tvar)
+            print(par.name, init[par.name])
             x0.append(init[par.name])
 
         logging.info('Compiling model...')
@@ -124,7 +133,6 @@ class Uniform(Distribution):
         self.upper = self._add_param(upper)
 
     def logp(self):
-        x = self.x
         upper = self.upper
         lower = self.lower
         return T.log(1 / (upper - lower))
