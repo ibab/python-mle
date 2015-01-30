@@ -1,4 +1,3 @@
-
 def test_distribution():
     from mle import Normal, var, par
     import theano.tensor as T
@@ -12,5 +11,3 @@ def test_distribution():
     assert(len(dist.get_vars()) == 1)
     assert(len(dist.get_params()) == 2)
     assert(len(dist.get_dists()) == 0)
-
-
