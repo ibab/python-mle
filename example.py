@@ -12,7 +12,7 @@ sigma1 = par("sigma1")
 
 model = Normal(x, mu1, sigma1)
 
-data = normal(3, 5, int(1e8))
+data = normal(3, 5, int(1e6))
 data = data.astype(float32)
 
 start = clock()
@@ -20,6 +20,10 @@ result = model.fit({"x":data}, {"mu1":2, "sigma1":4})
 print("Fit took {:5.1f}".format(clock()-start))
 
 print(result)
+
+from mle.tests import kolsmi
+
+print("P-Value of Kolmogorow-Smirnow-Test", kolsmi(model, result, data, 0.05)[0])
 
 mu = result["x"]["mu1"]
 sigma = result["x"]["sigma1"]
