@@ -1,4 +1,3 @@
-
 from scipy.optimize import minimize
 from theano import function, scan
 import theano.tensor as T
@@ -37,6 +36,31 @@ class Variable(object):
             self.label = name
         self.tvar = T.vector(name)
 
+    def __rmul__(self, other):
+        other * self.tvar
+
+    def __mul__(self, other):
+        self.tvar * other
+
+    def __rdiv__(self, other):
+        other / self.tvar
+
+    def __div__(self, other):
+        self.tvar / other
+
+    def __radd__(self, other):
+        other + self.tvar
+
+    def __add__(self, other):
+        self.tvar + other
+
+    def __rsub__(self, other):
+        other - self.tvar
+
+    def __sub__(self, other):
+        self.tvar - other
+
+
 class Parameter(object):
     def __init__(self, name, label=None, lower=None, upper=None):
         self.name = name
@@ -47,6 +71,30 @@ class Parameter(object):
         self.lower = lower
         self.upper = upper
         self.tvar = T.scalar(name)
+
+    def __rmul__(self, other):
+        other * self.tvar
+
+    def __mul__(self, other):
+        self.tvar * other
+
+    def __rdiv__(self, other):
+        other / self.tvar
+
+    def __div__(self, other):
+        self.tvar / other
+
+    def __radd__(self, other):
+        other + self.tvar
+
+    def __add__(self, other):
+        self.tvar + other
+
+    def __rsub__(self, other):
+        other - self.tvar
+
+    def __sub__(self, other):
+        self.tvar - other
 
 class Distribution(object):
     def __init__(self):
