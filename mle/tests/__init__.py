@@ -3,7 +3,7 @@ from scipy.integrate import quad
 import matplotlib.pyplot as plt
 from numpy import inf, zeros_like
 
-def kolsmi(dist, fit_result, data, alpha):
+def kolsmi(dist, fit_result, data):
     """
     Kolmogorow–Smirnow-Test for goodness of fit,
     tests the H0 hypothesis, if data is a sample of dist

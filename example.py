@@ -23,7 +23,7 @@ print(result)
 
 from mle.tests import kolsmi
 
-print("P-Value of Kolmogorow-Smirnow-Test", kolsmi(model, result, data, 0.05)[0])
+print("P-Value of Kolmogorow-Smirnow-Test", kolsmi(model, result, data)[1])
 
 mu = result["x"]["mu1"]
 sigma = result["x"]["sigma1"]
