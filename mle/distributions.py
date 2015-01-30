@@ -109,19 +109,19 @@ class Distribution(object):
     def logp_compiled(self):
         logging.info('Compiling logp...')
         vars, pars = self._get_vars_pars()
-        return function(vars + pars, -T.sum(self.logp()))
+        return function(vars + pars, -T.sum(self.logp()), allow_input_downcast=True)
 
     @memoize
     def grad_compiled(self):
         logging.info('Compiling grad_logp...')
         vars, pars = self._get_vars_pars()
-        return function(vars + pars, T.grad(-T.sum(self.logp()), pars))
+        return function(vars + pars, T.grad(-T.sum(self.logp()), pars), allow_input_downcast=True)
 
     @memoize
     def hessian_compiled(self):
         logging.info('Compiling f_hessian...')
         vars, pars = self._get_vars_pars()
-        return function(vars + pars, hessian_(-T.sum(self.logp()), pars)[0])
+        return function(vars + pars, hessian_(-T.sum(self.logp()), pars)[0], allow_input_downcast=True)
 
     def fit(self, data, init):
         variables = list(self.get_vars())
