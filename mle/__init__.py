@@ -1,3 +1,1 @@
-
-from distributions import *
-
+from .distributions import *
