@@ -154,11 +154,16 @@ class Distribution(object):
         return var_args, par_args
 
     @memoize
-    def compile_pdf(self):
+    def pdf_compiled(self):
         logging.info('Compiling pdf...')
         vars, pars = self._get_vars_pars()
-        print(vars, pars)
-        self.pdf = function(vars + pars, T.exp(self.logp()), allow_input_downcast=True)
+        return function(vars + pars, T.exp(self.logp()), allow_input_downcast=True)
+
+    @memoize
+    def cdf_compiled(self):
+        logging.info('Compiling cdf...')
+        vars, pars = self._get_vars_pars()
+        return function(vars + pars, self.tcdf(), allow_input_downcast=True)
 
     @memoize
     def logp_compiled(self):
@@ -239,7 +244,11 @@ class Normal(Distribution):
         self.x = self._add_var(x)
         self.mu = self._add_param(mu)
         self.sigma = self._add_param(sigma, enforce_lower=0)
-        self.compile_pdf()
+        self.pdf = self.pdf_compiled()
+        self.cdf = self.cdf_compiled()
+
+    def tcdf(self):
+        return 0.5 * (1 + T.erf((self.x - self.mu)/(self.sigma*T.sqrt(2))))
 
     def logp(self):
         x = self.x
@@ -253,7 +262,8 @@ class Mix2(Distribution):
         self.frac = self._add_param(frac)
         self.dist1 = self._add_dist(dist1, 'dist1')
         self.dist2 = self._add_dist(dist2, 'dist2')
-        self.compile_pdf()
+        self.pdf = self.pdf_compiled()
+        self.cdf = self.cdf_compiled()
 
     def logp(self):
         frac = self.frac
