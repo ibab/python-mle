@@ -229,14 +229,30 @@ class Uniform(Distribution):
     def __init__(self, x, lower=0, upper=1, *args, **kwargs):
         super(Uniform, self).__init__(*args, **kwargs)
         self.x = self._add_var(x)
-        self.lower = self._add_param(lower)
-        self.upper = self._add_param(upper)
-        self.compile_pdf()
+        try:
+            self.lower = float(lower)
+        except TypeError:
+            self.lower = self._add_param(lower)
+        try:
+            self.upper = float(upper)
+        except TypeError:
+            self.upper = self._add_param(upper)
+
+        self.pdf = self.pdf_compiled()
+        self.cdf = self.cdf_compiled()
+
+    def tcdf(self):
+        x = self.x
+        low = self.lower
+        up = self.upper
+        return T.switch(T.gt(x, up), 1, T.switch(T.lt(x, low), 0, (x - low)/(up - low)))
+
 
     def logp(self):
+        x = self.x
         upper = self.upper
         lower = self.lower
-        return T.log(1 / (upper - lower))
+        return T.switch(T.gt(x, upper), 0, T.switch(T.lt(x, lower), 0, 1/(upper - lower)))
 
 class Normal(Distribution):
     def __init__(self, x, mu=0, sigma=1, *args, **kwargs):
