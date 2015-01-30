@@ -183,7 +183,7 @@ class Distribution(object):
         vars, pars = self._get_vars_pars()
         return function(vars + pars, hessian_(-T.sum(self.logp()), pars)[0], allow_input_downcast=True)
 
-    def fit(self, data, init):
+    def fit(self, data, init, method="BFGS"):
         variables = list(self.get_vars())
         parameters = list(self.get_params())
 
@@ -213,7 +213,7 @@ class Distribution(object):
             return np.array(obj_func_grad(*args))
 
         logging.info('Minimizing negative log-likelihood of model...')
-        results = minimize(func, jac=func_grad, x0=x0)
+        results = minimize(func, method=method, jac=func_grad, x0=x0)
 
         ret = dict()
 
