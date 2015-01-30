@@ -25,19 +25,17 @@ frac = par('frac')
 sigma1 = par('sigma1')
 sigma2 = par('sigma2')
 
-dist1 = Normal(x, mu, sigma1)
-dist2 = Normal(x, mu, sigma2)
-model = Mix2(frac, dist1, dist2)
-# Mixture model with two Gaussians centered on each other
+# Mixture model of two Gaussians centered on each other
+model = Mix2(frac, Normal(x, mu, sigma1), Normal(x, mu, sigma2))
 
 # Generate data
 import numpy as np
 from numpy import append
 from numpy.random import normal, shuffle
-from scipy.stats import bernoulli
+from scipy.stats import binom
 
 N = 1000
-N_1 = bernoulli.rvs(0.5, size=1000)
+N_1 = binom.rvs(N, 0.5)
 N_2 = N - N_1
 xs = append(normal(0, 1, N_1), normal(0, 1.5, N_2))
 shuffle(xs)
