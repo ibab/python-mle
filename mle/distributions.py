@@ -106,6 +106,13 @@ class Distribution(object):
         return var_args, par_args
 
     @memoize
+    def compile_pdf(self):
+        logging.info('Compiling pdf...')
+        vars, pars = self._get_vars_pars()
+        print(vars, pars)
+        self.pdf = function(vars + pars, T.exp(self.logp()), allow_input_downcast=True)
+
+    @memoize
     def logp_compiled(self):
         logging.info('Compiling logp...')
         vars, pars = self._get_vars_pars()
@@ -141,7 +148,7 @@ class Distribution(object):
 
         obj_func = self.logp_compiled()
         obj_func_grad = self.grad_compiled()
-        #obj_func_hessian = self.hessian_compiled()
+        # obj_func_hessian = self.hessian_compiled()
 
         # We keep the data fixed while varying the parameters
         def func(pars):
@@ -150,30 +157,17 @@ class Distribution(object):
 
         def func_grad(pars):
             args = data_args + list(pars)
-            return  np.array(obj_func_grad(*args))
-
-        #def func_hesse(pars):
-        #    args = data_args + list(pars)
-        #    ret = np.array(obj_func_hessian(*args))
-        #    print(ret)
-        #    return ret
+            return np.array(obj_func_grad(*args))
 
         logging.info('Minimizing negative log-likelihood of model...')
-        results =  minimize(func, jac=func_grad, x0=x0)
+        results = minimize(func, jac=func_grad, x0=x0)
 
         ret = dict()
 
         for par, val in zip(parameters, results['x']):
             ret[par.name] = val
 
-        #results.cov = np.linalg.inv(func_hesse(results.x))
         results.x = ret
-
-        #err = dict()
-        #for par, val in zip(parameters, np.sqrt(np.diag(results['cov']))):
-        #    err[par.name] = val
-
-        #results.err = err
 
         return results
 
@@ -184,6 +178,7 @@ class Uniform(Distribution):
         self.x = self._add_var(x)
         self.lower = self._add_param(lower)
         self.upper = self._add_param(upper)
+        self.compile_pdf()
 
     def logp(self):
         upper = self.upper
@@ -196,6 +191,7 @@ class Normal(Distribution):
         self.x = self._add_var(x)
         self.mu = self._add_param(mu)
         self.sigma = self._add_param(sigma, enforce_lower=0)
+        self.compile_pdf()
 
     def logp(self):
         x = self.x
@@ -209,6 +205,7 @@ class Mix2(Distribution):
         self.frac = self._add_param(frac)
         self.dist1 = self._add_dist(dist1, 'dist1')
         self.dist2 = self._add_dist(dist2, 'dist2')
+        self.compile_pdf()
 
     def logp(self):
         frac = self.frac
