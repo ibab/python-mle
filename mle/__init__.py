@@ -1,11 +1,14 @@
 from scipy.optimize import minimize
-from theano import function
+from theano import function, scan
 import theano.tensor as T
 from numpy import inf
 import numpy as np
 from math import pi
 from collections import OrderedDict as OD
 import logging
+
+from util import hessian_
+from memoize import memoize
 
 __all__ = ['var', 'par', 'Normal', 'Uniform', 'Mix2']
 
@@ -87,31 +90,57 @@ class Distribution(object):
     def get_dists(self):
         return self.dist.values()
 
-    def fit(self, data, init):
+    def _get_vars_pars(self):
         variables = list(self.get_vars())
         parameters = list(self.get_params())
 
         var_args = []
-        data_args = []
+        for var in variables:
+            var_args.append(var.tvar)
 
+        par_args = []
+        for par in parameters:
+            par_args.append(par.tvar)
+
+        return var_args, par_args
+
+    @memoize
+    def logp_compiled(self):
+        logging.info('Compiling logp...')
+        vars, pars = self._get_vars_pars()
+        return function(vars + pars, -T.sum(self.logp()))
+
+    @memoize
+    def grad_compiled(self):
+        logging.info('Compiling grad_logp...')
+        vars, pars = self._get_vars_pars()
+        return function(vars + pars, T.grad(-T.sum(self.logp()), pars))
+
+    @memoize
+    def hessian_compiled(self):
+        logging.info('Compiling f_hessian...')
+        vars, pars = self._get_vars_pars()
+        return function(vars + pars, hessian_(-T.sum(self.logp()), pars)[0])
+
+    def fit(self, data, init):
+        variables = list(self.get_vars())
+        parameters = list(self.get_params())
+
+        data_args = []
         for var in variables:
             if var.name not in data:
                 raise ValueError('Random variable {} required by model not found in dataset'.format(var.name))
-            var_args.append(var.tvar)
             data_args.append(data[var.name])
 
-        par_args = []
         x0 = []
         for par in parameters:
             if par.name not in init:
                 raise ValueError('No initial value specified for Parameter {}'.format(par.name))
-            par_args.append(par.tvar)
-            print(par.name, init[par.name])
             x0.append(init[par.name])
 
-        logging.info('Compiling model...')
-        obj_func = function(var_args + par_args, -T.sum(self.logp()))
-        obj_func_grad = function(var_args + par_args, T.grad(-T.sum(self.logp()), par_args))
+        obj_func = self.logp_compiled()
+        obj_func_grad = self.grad_compiled()
+        #obj_func_hessian = self.hessian_compiled()
 
         # We keep the data fixed while varying the parameters
         def func(pars):
@@ -120,10 +149,33 @@ class Distribution(object):
 
         def func_grad(pars):
             args = data_args + list(pars)
-            return np.array(obj_func_grad(*args))
+            return  np.array(obj_func_grad(*args))
+
+        #def func_hesse(pars):
+        #    args = data_args + list(pars)
+        #    ret = np.array(obj_func_hessian(*args))
+        #    print(ret)
+        #    return ret
 
         logging.info('Minimizing negative log-likelihood of model...')
-        return minimize(func, jac=func_grad, x0=x0)
+        results =  minimize(func, jac=func_grad, x0=x0)
+
+        ret = dict()
+
+        for par, val in zip(parameters, results['x']):
+            ret[par.name] = val
+
+        #results.cov = np.linalg.inv(func_hesse(results.x))
+        results.x = ret
+
+        #err = dict()
+        #for par, val in zip(parameters, np.sqrt(np.diag(results['cov']))):
+        #    err[par.name] = val
+
+        #results.err = err
+
+        return results
+
 
 class Uniform(Distribution):
     def __init__(self, x, lower=0, upper=1, *args, **kwargs):
