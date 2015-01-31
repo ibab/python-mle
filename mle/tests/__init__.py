@@ -39,14 +39,15 @@ def chisquare(dist, fit_result, data, bins=None, range=None):
     """
 
     if bins is None:
-        bins = ceil(1 + log2(len(data)))
-        print(bins)
+        bins = ceil(2*len(data)**(1.0/3.0))
 
-    entries, edges = histogram(data, bins=bins, range=range, density=True)
-    center = 0.5 * (edges[:-1] + edges[1:])
+    entries, edges = histogram(data, bins=bins, range=range)
+    cdf = dist.cdf(edges, **fit_result["x"])
+    exp_entries = len(data) * (cdf[1:] - cdf[:-1])
 
     chisq, pvalue = _chisquare(entries,
-                               dist.pdf(center, **fit_result["x"]),
-                               ddof=len(fit_result["x"]))
-
+                               exp_entries,
+                               ddof=len(fit_result["x"])
+                               )
+    chisq = chisq/(bins - len(fit_result["x"]) - 1)
     return chisq, pvalue
