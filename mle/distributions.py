@@ -278,8 +278,10 @@ class Mix2(Distribution):
         self.frac = self._add_param(frac)
         self.dist1 = self._add_dist(dist1, 'dist1')
         self.dist2 = self._add_dist(dist2, 'dist2')
+        self.tcdf = lambda : self.frac * self.dist1.tcdf() + (1-self.frac) * self.dist2.tcdf()
         self.pdf = self.pdf_compiled()
         self.cdf = self.cdf_compiled()
+
 
     def logp(self):
         frac = self.frac
