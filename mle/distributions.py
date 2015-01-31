@@ -10,7 +10,7 @@ import logging
 from .util import hessian_
 from .memoize import memoize
 
-__all__ = ['var', 'par', 'Normal', 'Uniform', 'Mix2']
+__all__ = ['var', 'par', 'Normal', 'Uniform', 'Exponential', 'Mix2']
 
 def alltrue(vals):
     ret = 1
@@ -275,13 +275,47 @@ class Normal(Distribution):
         sigma = self.sigma
         return bound(-(x - mu)**2 / (2 * sigma**2) + T.log(1 / T.sqrt(sigma**2 * 2 * pi)), sigma > 0)
 
+class Exponential(Distribution):
+    def __init__(self, x, beta=1, lower=0, upper=inf, *args, **kwargs):
+        super(Exponential, self).__init__(*args, **kwargs)
+        self.x = self._add_var(x)
+        self.beta = self._add_param(beta)
+        try:
+            self.lower = float(lower)
+        except TypeError:
+            self.lower = self._add_param(lower)
+        try:
+            self.upper = float(upper)
+        except TypeError:
+            self.upper = self._add_param(upper)
+
+        self.pdf = self.pdf_compiled()
+        self.cdf = self.cdf_compiled()
+
+    def tcdf(self):
+        x = self.x
+        beta = self.beta
+        lower = self.lower
+        upper = self.upper
+        norm = T.exp(-lower/beta) - T.exp(-upper/beta)
+        return T.switch(T.lt(x, lower), 0, (T.exp(-lower/beta) - T.exp(-x/beta))/norm)
+
+    def logp(self):
+        x = self.x
+        beta = self.beta
+        upper = self.upper
+        lower = self.lower
+        norm = T.exp(-lower/beta) - T.exp(-upper/beta)
+        return bound(T.log(T.exp(-x/beta)/(beta*norm)), beta > 0)
+
+
 class Mix2(Distribution):
     def __init__(self, frac, dist1, dist2, *args, **kwargs):
         super(Mix2, self).__init__(*args, **kwargs)
         self.frac = self._add_param(frac)
         self.dist1 = self._add_dist(dist1, 'dist1')
         self.dist2 = self._add_dist(dist2, 'dist2')
-        self.tcdf = lambda : self.frac * self.dist1.tcdf() + (1-self.frac) * self.dist2.tcdf()
+        self.tcdf = lambda: self.frac * self.dist1.tcdf() + (1-self.frac) * self.dist2.tcdf()
         self.pdf = self.pdf_compiled()
         self.cdf = self.cdf_compiled()
 
