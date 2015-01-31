@@ -215,10 +215,13 @@ class Distribution(object):
         logging.info('Minimizing negative log-likelihood of model...')
         results = minimize(func, method=method, jac=func_grad, x0=x0)
 
-        ret = dict()
+        if len(parameters) > 1:
+            ret = dict()
+            for par, val in zip(parameters, results['x']):
+                ret[par.name] = val
+        else:
+            ret = {parameters[0].name: results["x"]}
 
-        for par, val in zip(parameters, results['x']):
-            ret[par.name] = val
 
         results.x = ret
 
