@@ -1,5 +1,5 @@
 from scipy.stats import chisquare as _chisquare, kstest as _kstest
-from numpy import inf, zeros_like, histogram, log2, ceil
+import numpy as _np
 
 def kolsmi(dist, fit_result, data):
     """
@@ -38,16 +38,22 @@ def chisquare(dist, fit_result, data, bins=None, range=None):
                       and data are compatible with random fluctuation
     """
 
+    # rule of thumb for number if bins if not provided
     if bins is None:
-        bins = ceil(2*len(data)**(1.0/3.0))
+        bins = _np.ceil(2*len(data)**(1.0/3.0))
 
-    entries, edges = histogram(data, bins=bins, range=range)
+    entries, edges = _np.histogram(data, bins=bins, range=range)
+
+    # get expected frequencies from the cdf
     cdf = dist.cdf(edges, **fit_result["x"])
-    exp_entries = len(data) * (cdf[1:] - cdf[:-1])
+    exp_entries = _np.round(len(data) * (cdf[1:] - cdf[:-1]))
 
-    chisq, pvalue = _chisquare(entries,
-                               exp_entries,
+    # use only bins where more then 4 entries are expected
+    mask = exp_entries >= 5
+
+    chisq, pvalue = _chisquare(entries[mask],
+                               exp_entries[mask],
                                ddof=len(fit_result["x"])
                                )
-    chisq = chisq/(bins - len(fit_result["x"]) - 1)
+    chisq = chisq/(_np.sum(mask) - len(fit_result["x"]) - 1)
     return chisq, pvalue
