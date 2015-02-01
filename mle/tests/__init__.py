@@ -16,7 +16,12 @@ def kolsmi(dist, fit_result, data):
                       cumulated distributions
         p-value:      the p-value, probability that dist describes the data
     """
-    teststat, pvalue = _kstest(data, lambda x: dist.cdf(x, **fit_result["x"]))
+    variables = dist.get_vars()
+    if len(variables) > 1:
+        raise ValueError("Kolmogorov-Smirnov-Test is only valid for 1d distributions")
+    var = variables[0]
+    teststat, pvalue = _kstest(data[var.name],
+                               lambda x: dist.cdf(x, **fit_result["x"]))
     return teststat, pvalue
 
 def chisquare(dist, fit_result, data, bins=None, range=None):
@@ -38,15 +43,20 @@ def chisquare(dist, fit_result, data, bins=None, range=None):
                       and data are compatible with random fluctuation
     """
 
+    variables = dist.get_vars()
+    if len(variables) > 1:
+        raise ValueError("This is a 1d only chisquare test")
+    var = variables[0]
+
     # rule of thumb for number if bins if not provided
     if bins is None:
-        bins = _np.ceil(2*len(data)**(1.0/3.0))
+        bins = _np.ceil(2*len(data[var.name])**(1.0/3.0))
 
-    entries, edges = _np.histogram(data, bins=bins, range=range)
+    entries, edges = _np.histogram(data[var.name], bins=bins, range=range)
 
     # get expected frequencies from the cdf
     cdf = dist.cdf(edges, **fit_result["x"])
-    exp_entries = _np.round(len(data) * (cdf[1:] - cdf[:-1]))
+    exp_entries = _np.round(len(data[var.name]) * (cdf[1:] - cdf[:-1]))
 
     # use only bins where more then 4 entries are expected
     mask = exp_entries >= 5
