@@ -10,15 +10,26 @@ from mle import Normal, var, par, Mix2
 x = var("x")
 mu1 = par("mu1")
 sigma1 = par("sigma1")
+mu2 = par("mu2")
+sigma2 = par("sigma2")
+frac = par("frac")
 
-model = Normal(x, mu1, sigma1)
+model = Mix2(frac, Normal(x, mu1, sigma1), Normal(x, mu2, sigma2))
 
-N = int(1e6)
+N = int(1e5)
 
-data = array(normal(3, 5, N), dtype=[("x", float)])
+data = array(append(normal(3, 1, N), normal(-3, 1, 2*N)), dtype=[("x", float)])
+
+initial = {
+    "frac": 0.5,
+    "mu1":2,
+    "sigma1":4,
+    "mu2":2,
+    "sigma2":4
+}
 
 start = clock()
-result = model.fit(data, {"mu1":2, "sigma1":4}, method="BFGS")
+result = model.fit(data, initial, method="Powell")
 print("Fit took {:5.1f} s".format(clock()-start))
 print(result)
 
