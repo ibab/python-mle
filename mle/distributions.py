@@ -1,7 +1,8 @@
 from scipy.optimize import minimize
 from theano import function, scan
 import theano.tensor as T
-from numpy import inf
+from numpy import inf, array
+from numpy.core.records import recarray
 import numpy as np
 from math import pi
 from collections import OrderedDict as OD
@@ -189,9 +190,13 @@ class Distribution(object):
 
         data_args = []
         for var in variables:
-            if var.name not in data:
-                raise ValueError('Random variable {} required by model not found in dataset'.format(var.name))
-            data_args.append(data[var.name])
+            if type(data) is array or type(data) is recarray:
+                if var.name not in data.dtype.names:
+                    raise ValueError('Random variable {} required by model not found in dataset'.format(var.name))
+            else:
+                if var.name not in data:
+                    raise ValueError('Random variable {} required by model not found in dataset'.format(var.name))
+            data_args.append(np.array(data[var.name]))
 
         x0 = []
         for par in parameters:
