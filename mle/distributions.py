@@ -250,6 +250,10 @@ class Uniform(Distribution):
         up = self.upper
         return T.switch(T.gt(x, up), 1, T.switch(T.lt(x, low), 0, (x - low)/(up - low)))
 
+    def sample(self, num, init):
+        lower = init[self.lower.name]
+        upper = init[self.upper.name]
+        return np.random.uniform(lower, upper, num)
 
     def logp(self):
         x = self.x
@@ -268,6 +272,11 @@ class Normal(Distribution):
 
     def tcdf(self):
         return 0.5 * (1 + T.erf((self.x - self.mu)/(self.sigma*T.sqrt(2))))
+
+    def sample(self, num, init):
+        mu = init[self.mu.name]
+        sigma = init[self.sigma.name]
+        return np.random.normal(mu, sigma, num)
 
     def logp(self):
         x = self.x
@@ -299,6 +308,11 @@ class Exponential(Distribution):
         upper = self.upper
         norm = T.exp(-lower/beta) - T.exp(-upper/beta)
         return T.switch(T.lt(x, lower), 0, (T.exp(-lower/beta) - T.exp(-x/beta))/norm)
+
+    def sample(self, num, init):
+        beta = init[self.beta.name]
+        # FIXME implement bounds
+        return np.random.exponential(beta, num)
 
     def logp(self):
         x = self.x
@@ -333,6 +347,10 @@ class Power(Distribution):
         norm = (alpha - 1)/(lower**(1-alpha) - upper**(1-alpha))
         return T.switch(T.lt(x, lower), 0, norm/(alpha - 1) * (lower**(1 - alpha) - x**(1 - alpha)))
 
+    def sample(self, num, init):
+        alpha = init[self.alpha.name]
+        return np.random.power(alpha, num)
+
     def logp(self):
         x = self.x
         alpha = self.alpha
@@ -352,9 +370,17 @@ class Mix2(Distribution):
         self.pdf = self.pdf_compiled()
         self.cdf = self.cdf_compiled()
 
+    def sample(self, num, init):
+        frac = init[self.frac.name]
+        N1 = np.random.binomial(num, frac)
+        N2 = num - N1
+        ret = np.append(self.dist1.sample(N1, init), self.dist2.sample(N2, init))
+        np.random.shuffle(ret)
+        return ret
 
     def logp(self):
         frac = self.frac
         dist1 = self.dist1
         dist2 = self.dist2
         return bound(T.log(frac * T.exp(dist1.logp()) + (1 - frac) * T.exp(dist2.logp())), frac > 0, frac < 1)
+

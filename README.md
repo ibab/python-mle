@@ -30,17 +30,8 @@ sigma2 = par('sigma2')
 # Mixture model of two Gaussians centered on each other
 model = Mix2(frac, Normal(x, mu, sigma1), Normal(x, mu, sigma2))
 
-# Generate data
-import numpy as np
-from numpy import append
-from numpy.random import normal, shuffle
-from scipy.stats import binom
-
-N = 1000
-N_1 = binom.rvs(N, 0.5)
-N_2 = N - N_1
-xs = append(normal(0, 1, N_1), normal(0, 1.5, N_2))
-shuffle(xs)
+true_vals = {'mu': 0, 'sigma1': 2, 'sigma2': 4, 'frac': 0.5}
+xs = model.sample(1e6, true_vals)
 
 # Fit model
 init = {'mu': 0, 'sigma1': 1, 'sigma2': 3, 'frac': 0.6}
