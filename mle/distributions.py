@@ -64,7 +64,6 @@ class Variable(object):
     def __sub__(self, other):
         self.tvar - other
 
-
 class Parameter(object):
     def __init__(self, name, label=None, lower=None, upper=None):
         self.name = name
@@ -195,7 +194,6 @@ class Distribution(object):
         parameters = list(self.get_params())
 
         data_args = []
-        print(type(data))
         for var in variables:
             if type(data) is ndarray or type(data) is recarray:
                 if var.name not in data.dtype.names:
@@ -238,7 +236,6 @@ class Distribution(object):
         results.x = ret
 
         return results
-
 
 class Uniform(Distribution):
     def __init__(self, x, lower=0, upper=1, *args, **kwargs):
@@ -370,7 +367,6 @@ class Power(Distribution):
         lower = self.lower
         norm = (alpha - 1)/(lower**(1-alpha) - upper**(1-alpha))
         return bound(T.log(norm * x**(-alpha)), alpha > 1)
-
 
 class Mix2(Distribution):
     def __init__(self, frac, dist1, dist2, *args, **kwargs):
