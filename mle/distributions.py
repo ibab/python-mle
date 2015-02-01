@@ -10,7 +10,7 @@ import logging
 from .util import hessian_
 from .memoize import memoize
 
-__all__ = ['var', 'par', 'Normal', 'Uniform', 'Exponential', 'Mix2']
+__all__ = ['var', 'par', 'Normal', 'Uniform', 'Exponential', 'Power', 'Mix2']
 
 def alltrue(vals):
     ret = 1
@@ -305,8 +305,41 @@ class Exponential(Distribution):
         beta = self.beta
         upper = self.upper
         lower = self.lower
-        norm = T.exp(-lower/beta) - T.exp(-upper/beta)
-        return bound(T.log(T.exp(-x/beta)/(beta*norm)), beta > 0)
+        norm = 1/(T.exp(-lower/beta) - T.exp(-upper/beta))
+        return bound(T.log(norm*T.exp(-x/beta)/beta), beta > 0)
+
+class Power(Distribution):
+    def __init__(self, x, alpha=1, lower=1, upper=inf, *args, **kwargs):
+        super(Power, self).__init__(*args, **kwargs)
+        self.x = self._add_var(x)
+        self.alpha = self._add_param(alpha)
+        try:
+            self.lower = float(lower)
+        except TypeError:
+            self.lower = self._add_param(lower)
+        try:
+            self.upper = float(upper)
+        except TypeError:
+            self.upper = self._add_param(upper)
+
+        self.pdf = self.pdf_compiled()
+        self.cdf = self.cdf_compiled()
+
+    def tcdf(self):
+        x = self.x
+        alpha = self.alpha
+        lower = self.lower
+        upper = self.upper
+        norm = (alpha - 1)/(lower**(1-alpha) - upper**(1-alpha))
+        return T.switch(T.lt(x, lower), 0, norm/(alpha - 1) * (lower**(1 - alpha) - x**(1 - alpha)))
+
+    def logp(self):
+        x = self.x
+        alpha = self.alpha
+        upper = self.upper
+        lower = self.lower
+        norm = (alpha - 1)/(lower**(1-alpha) - upper**(1-alpha))
+        return bound(T.log(norm * x**(-alpha)), alpha > 1)
 
 
 class Mix2(Distribution):
