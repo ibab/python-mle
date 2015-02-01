@@ -37,6 +37,9 @@ class Variable(object):
             self.label = name
         self.tvar = T.vector(name)
 
+    def __repr__(self):
+        return self.label
+
     def __rmul__(self, other):
         other * self.tvar
 
@@ -72,6 +75,9 @@ class Parameter(object):
         self.lower = lower
         self.upper = upper
         self.tvar = T.scalar(name)
+
+    def __repr__(self):
+        return self.label
 
     def __rmul__(self, other):
         other * self.tvar
