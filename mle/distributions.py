@@ -268,7 +268,7 @@ class Uniform(Distribution):
         x = self.x
         upper = self.upper
         lower = self.lower
-        return T.switch(T.gt(x, upper), 0, T.switch(T.lt(x, lower), 0, 1/(upper - lower)))
+        return T.log(T.switch(T.gt(x, upper), 0, T.switch(T.lt(x, lower), 0, 1/(upper - lower))))
 
 class Normal(Distribution):
     def __init__(self, x, mu=0, sigma=1, *args, **kwargs):
