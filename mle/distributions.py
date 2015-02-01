@@ -11,7 +11,7 @@ import logging
 from .util import hessian_
 from .memoize import memoize
 
-__all__ = ['var', 'par', 'Normal', 'Uniform', 'Exponential', 'Power', 'Mix2']
+__all__ = ['var', 'par', 'const', 'Normal', 'Uniform', 'Exponential', 'Power', 'Mix2']
 
 def alltrue(vals):
     ret = 1
@@ -27,6 +27,46 @@ def var(name, label=None):
 
 def par(name, label=None, lower=None, upper=None):
     return Parameter(name, label, lower, upper)
+
+def const(value, name, label=None):
+    return Constant(value, name, label)
+
+class Constant(object):
+    def __init__(self, value, name, label=None):
+        self.name = name
+        self.value = value
+        if label:
+            self.label = label
+        else:
+            self.label = name
+        self.tvar = T.constant(value, name)
+
+    def __repr__(self):
+        return self.label
+
+    def __rmul__(self, other):
+        other * self.tvar
+
+    def __mul__(self, other):
+        self.tvar * other
+
+    def __rdiv__(self, other):
+        other / self.tvar
+
+    def __div__(self, other):
+        self.tvar / other
+
+    def __radd__(self, other):
+        other + self.tvar
+
+    def __add__(self, other):
+        self.tvar + other
+
+    def __rsub__(self, other):
+        other - self.tvar
+
+    def __sub__(self, other):
+        self.tvar - other
 
 class Variable(object):
     def __init__(self, name, label=None):
@@ -106,6 +146,7 @@ class Distribution(object):
     def __init__(self):
         self.var = OD()
         self.param = OD()
+        self.const = OD()
         self.dist = OD()
 
     def _add_var(self, var):
@@ -115,6 +156,10 @@ class Distribution(object):
     def _add_param(self, param, enforce_lower=None, enforce_upper=None):
         self.param[param.name] = param
         return param.tvar
+
+    def _add_const(self, const):
+        self.const[const.name] = const
+        return const.tvar
 
     def _add_dist(self, dist, name):
         self.dist[name] = dist
@@ -126,9 +171,9 @@ class Distribution(object):
         ret += self.var.values()
         for dist in self.dist.values():
             ret += dist.get_vars()
-        for par in ret:
-            if par not in unique:
-                unique.append(par)
+        for var in ret:
+            if var not in unique:
+                unique.append(var)
         return unique
 
     def get_params(self):
@@ -140,6 +185,17 @@ class Distribution(object):
         for par in ret:
             if par not in unique:
                 unique.append(par)
+        return unique
+
+    def get_consts(self):
+        ret = []
+        unique = []
+        ret += self.const.values()
+        for dist in self.dist.values():
+            ret += dist.get_consts()
+        for const in ret:
+            if const not in unique:
+                unique.append(const)
         return unique
 
     def get_dists(self):
@@ -238,17 +294,22 @@ class Distribution(object):
         return results
 
 class Uniform(Distribution):
-    def __init__(self, x, lower=0, upper=1, *args, **kwargs):
+    def __init__(self, x, lower=Constant(0, "lower"), upper=Constant(1, "upper"), *args, **kwargs):
         super(Uniform, self).__init__(*args, **kwargs)
         self.x = self._add_var(x)
-        try:
-            self.lower = float(lower)
-        except TypeError:
+
+        if type(lower) is Constant:
+            self.lower = self._add_const(lower)
+        elif type(lower) is Parameter:
             self.lower = self._add_param(lower)
-        try:
-            self.upper = float(upper)
-        except TypeError:
-            self.upper = self._add_param(upper)
+        else:
+            raise TypeError("lower has to be either a Constant or a Parameter")
+        if type(upper) is Constant:
+            self.upper = self._add_const(upper)
+        elif type(upper) is Parameter:
+            self.lower = self._add_param(upper)
+        else:
+            raise TypeError("upper has to be either a Constant or a Parameter")
 
         self.pdf = self.pdf_compiled()
         self.cdf = self.cdf_compiled()
@@ -294,18 +355,27 @@ class Normal(Distribution):
         return bound(-(x - mu)**2 / (2 * sigma**2) + T.log(1 / T.sqrt(sigma**2 * 2 * pi)), sigma > 0)
 
 class Exponential(Distribution):
-    def __init__(self, x, beta=1, lower=0, upper=inf, *args, **kwargs):
+    def __init__(self, x, beta=1, lower=Constant(0, "lower"), upper=Constant(inf, "upper"), *args, **kwargs):
         super(Exponential, self).__init__(*args, **kwargs)
         self.x = self._add_var(x)
         self.beta = self._add_param(beta)
-        try:
-            self.lower = float(lower)
-        except TypeError:
+
+        if type(lower) is Constant:
+            self.lower = self._add_const(lower)
+        elif type(lower) is Parameter:
             self.lower = self._add_param(lower)
-        try:
-            self.upper = float(upper)
-        except TypeError:
-            self.upper = self._add_param(upper)
+        else:
+            raise TypeError("lower has to be either a Constant or a Parameter")
+        if type(upper) is Constant:
+            self.upper = self._add_const(upper)
+        elif type(upper) is Parameter:
+            self.lower = self._add_param(upper)
+        else:
+            raise TypeError("upper has to be either a Constant or a Parameter")
+
+        print(self.get_vars())
+        print(self.get_params())
+        print(self.get_consts())
 
         self.pdf = self.pdf_compiled()
         self.cdf = self.cdf_compiled()
@@ -332,18 +402,23 @@ class Exponential(Distribution):
         return bound(T.log(norm*T.exp(-x/beta)/beta), beta > 0)
 
 class Power(Distribution):
-    def __init__(self, x, alpha=1, lower=1, upper=inf, *args, **kwargs):
+    def __init__(self, x, alpha=1, lower=Constant(1, "lower"), upper=Constant(inf, "upper"), *args, **kwargs):
         super(Power, self).__init__(*args, **kwargs)
         self.x = self._add_var(x)
         self.alpha = self._add_param(alpha)
-        try:
-            self.lower = float(lower)
-        except TypeError:
+
+        if type(lower) is Constant:
+            self.lower = self._add_const(lower)
+        elif type(lower) is Parameter:
             self.lower = self._add_param(lower)
-        try:
-            self.upper = float(upper)
-        except TypeError:
-            self.upper = self._add_param(upper)
+        else:
+            raise TypeError("lower has to be either a Constant or a Parameter")
+        if type(upper) is Constant:
+            self.upper = self._add_const(upper)
+        elif type(upper) is Parameter:
+            self.lower = self._add_param(upper)
+        else:
+            raise TypeError("upper has to be either a Constant or a Parameter")
 
         self.pdf = self.pdf_compiled()
         self.cdf = self.cdf_compiled()
@@ -391,4 +466,3 @@ class Mix2(Distribution):
         dist1 = self.dist1
         dist2 = self.dist2
         return bound(T.log(frac * T.exp(dist1.logp()) + (1 - frac) * T.exp(dist2.logp())), frac > 0, frac < 1)
-
