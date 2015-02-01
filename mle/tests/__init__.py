@@ -3,7 +3,7 @@ import numpy as _np
 
 def kolsmi(dist, fit_result, data):
     """
-    Perform a Kolmogorow–Smirnow-Test for goodness of fit.
+    Perform a Kolmogorow-Smirnow-Test for goodness of fit.
 
     This tests the H0 hypothesis, if data is a sample of dist
 
