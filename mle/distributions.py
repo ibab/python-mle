@@ -1,7 +1,7 @@
 from scipy.optimize import minimize
 from theano import function, scan
 import theano.tensor as T
-from numpy import inf, array
+from numpy import inf, array, ndarray
 from numpy.core.records import recarray
 import numpy as np
 from math import pi
@@ -195,8 +195,9 @@ class Distribution(object):
         parameters = list(self.get_params())
 
         data_args = []
+        print(type(data))
         for var in variables:
-            if type(data) is array or type(data) is recarray:
+            if type(data) is ndarray or type(data) is recarray:
                 if var.name not in data.dtype.names:
                     raise ValueError('Random variable {} required by model not found in dataset'.format(var.name))
             else:
