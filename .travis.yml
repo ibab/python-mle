@@ -19,8 +19,12 @@ before_install:
 install:
   - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib nose pip
   - pip install theano
+  - pip install coverage coveralls
  
 # Run test
 script:
-  - nosetests --logging-level=INFO
+  - nosetests --with-coverage --logging-level=INFO
+
+after_success:
+  - coveralls
  

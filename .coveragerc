@@ -1,0 +1,8 @@
+# .coveragerc to control coverage.py
+# based on http://nedbatchelder.com/code/coverage/config.html
+[run]
+branch = True
+source = mle
+include = */mle/*
+omit =
+    */setup.py
