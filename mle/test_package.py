@@ -1,3 +1,4 @@
+from nose.tools import raises
 
 def test_formula_transform():
     """
@@ -26,7 +27,7 @@ def test_const():
     np.random.seed(42)
     data = model.sample(200, {'mu': 0, 'sigma': 1})
 
-    results = model.fit(data, {'mu': 1, 'sigma'})
+    results = model.fit(data, {'mu': 1, 'sigma': 1})
     assert(results.x['mu'] == 1)
 
 @raises(ValueError)
