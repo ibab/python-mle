@@ -2,6 +2,7 @@ from theano import Variable, scan, pp
 from theano.tensor import grad, stack, concatenate
 from theano.gradient import format_as
 from theano.printing import debugprint
+import functools
 
 def hessian_(cost, wrt, consider_constant=None,
             disconnected_inputs='raise'):
@@ -59,3 +60,29 @@ def hessian_(cost, wrt, consider_constant=None,
              "script that generated the error)")
     return format_as(using_list, using_tuple, stack(hess)[0])
 
+def memoize(obj):
+    """
+    An expensive memoizer that works with unhashables
+    """
+    cache = obj.cache = {}
+
+    @functools.wraps(obj)
+    def memoizer(*args, **kwargs):
+        key = (hashable(args), hashable(kwargs))
+
+        if key not in cache:
+            cache[key] = obj(*args, **kwargs)
+
+        return cache[key]
+    return memoizer
+
+def hashable(a):
+    """
+    Turn some unhashable objects into hashable ones.
+    """
+    if isinstance(a, dict):
+        return hashable(a.items())
+    try:
+        return tuple(map(hashable, a))
+    except:
+        return a

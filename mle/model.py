@@ -7,8 +7,7 @@ from numpy.core.records import recarray
 import numpy as np
 import logging
 
-from .util import hessian_
-from .memoize import memoize
+from .util import hessian_, memoize
 
 __all__ = ['Model']
 
