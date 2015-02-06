@@ -57,5 +57,5 @@ def hessian_(cost, wrt, consider_constant=None,
             ("Scan has returned a list of updates. This should not "
              "happen! Report this to theano-users (also include the "
              "script that generated the error)")
-    return format_as(using_list, using_tuple, stack(hess))
+    return format_as(using_list, using_tuple, stack(hess)[0])
 
