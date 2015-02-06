@@ -52,5 +52,4 @@ class Vector(T.TensorVariable):
         super(Vector, self).__init__(T.TensorType('floatX', (True,)))
         self.name = name
         self.label = label
-        self.observed = observed
 

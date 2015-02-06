@@ -75,7 +75,7 @@ class Model(object):
             logging.info('Compiling {}...'.format(name))
             obs = model.get_observed()
             params = model.get_params()
-            return function(obs + params, , allow_input_downcast=True)
+            return function(obs + params, allow_input_downcast=True)
 
         setattr(self, 'compile_' + name, compile)
 

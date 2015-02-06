@@ -3,7 +3,7 @@ import numpy as np
 import theano.tensor as T
 from numpy import inf, array, ndarray
 
-from .distribution import Model
+from mle.model import Model
 
 __all__=['Uniform', 'Normal', 'Mix2']
 

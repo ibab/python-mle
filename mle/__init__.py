@@ -1,3 +1,3 @@
 from .distributions import *
-from .distribution import *
+from .model import *
 from .variable import *
