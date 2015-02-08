@@ -18,48 +18,28 @@ def bound(logp, *conditions):
 
 class Uniform(Model):
     def __init__(self, x, lower, upper, *args, **kwargs):
+        self._logp = T.log(T.switch(T.gt(x, upper), 0, T.switch(T.lt(x, lower), 0, 1/(upper - lower))))
+        self._cdf = T.switch(T.gt(x, up), 1, T.switch(T.lt(x, low), 0, (x - low)/(up - low)))
         super(Uniform, self).__init__(*args, **kwargs)
         self._add_expr('x', x)
         self._add_expr('lower', lower)
         self._add_expr('upper', upper)
 
-        self._logp = T.log(T.switch(T.gt(x, upper), 0, T.switch(T.lt(x, lower), 0, 1/(upper - lower))))
-        self._cdf = T.switch(T.gt(x, up), 1, T.switch(T.lt(x, low), 0, (x - low)/(up - low)))
-
-    def sample(self, num, init):
-        lower = init[self.lower.name]
-        upper = init[self.upper.name]
-        return np.random.uniform(lower, upper, num)
-
 class Normal(Model):
     def __init__(self, x, mu, sigma, *args, **kwargs):
+        self._logp = bound(-(x - mu)**2 / (2 * sigma**2) + T.log(1 / T.sqrt(sigma**2 * 2 * np.pi)), sigma > 0)
+        self._cdf = 0.5 * (1 + T.erf((x - mu)/(sigma*T.sqrt(2))))
         super(Normal, self).__init__(*args, **kwargs)
         self._add_expr('x', x)
         self._add_expr('mu', mu)
         self._add_expr('sigma', sigma)
 
-        self._logp = bound(-(x - mu)**2 / (2 * sigma**2) + T.log(1 / T.sqrt(sigma**2 * 2 * pi)), sigma > 0)
-        self._cdf = 0.5 * (1 + T.erf((self.x - self.mu)/(self.sigma*T.sqrt(2))))
-
-    def sample(self, num, init):
-        mu = init[self.mu.name]
-        sigma = init[self.sigma.name]
-        return np.random.normal(mu, sigma, num)
-
 class Mix2(Model):
-    def __init__(self, frac, dist1, dist2, *args, **kwargs):
+    def __init__(self, theta, dist1, dist2, *args, **kwargs):
+        self._logp = bound(T.log(theta * T.exp(dist1._logp) + (1 - theta) * T.exp(dist2._logp)), theta > 0, theta < 1)
+        self._cdf = lambda: self.theta * self.dist1._cdf + (1-self.theta) * self.dist2._cdf
         super(Mix2, self).__init__(*args, **kwargs)
-        self._add_expr('frac', frac)
+        self._add_expr('theta', theta)
         self._add_submodel('dist1', dist1)
         self._add_submodel('dist2', dist2)
-        self._cdf = lambda: self.frac * self.dist1.tcdf() + (1-self.frac) * self.dist2.tcdf()
-        self._logp = bound(T.log(frac * T.exp(dist1.logp()) + (1 - frac) * T.exp(dist2.logp())), frac > 0, frac < 1)
-
-    def sample(self, num, init):
-        frac = init[self.frac.name]
-        N1 = np.random.binomial(num, frac)
-        N2 = num - N1
-        ret = np.append(self.dist1.sample(N1, init), self.dist2.sample(N2, init))
-        np.random.shuffle(ret)
-        return ret
 

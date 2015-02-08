@@ -20,23 +20,25 @@ Currently, the package is only a basic prototype and will change heavily in the 
 ## Example
 
 ```python
-# Create model
-from mle import Normal, Mix2, var, par
+import numpy as np
+from mle import *
 
-x = var('x')
-mu = par('mu')
-frac = par('frac')
-sigma1 = par('sigma1')
-sigma2 = par('sigma2')
+# Define model
+x = var('x', observed=True, vector=True)
+y = var('y', observed=True, vector=True)
 
-# Mixture model of two Gaussians centered on each other
-model = Mix2(frac, Normal(x, mu, sigma1), Normal(x, mu, sigma2))
+a = var('a')
+b = var('b')
+sigma = var('sigma')
 
-true_vals = {'mu': 0, 'sigma1': 2, 'sigma2': 4, 'frac': 0.5}
-xs = model.sample(1e6, true_vals)
+model = Normal(y, a * x + b, sigma)
 
-# Fit model
-init = {'mu': 0, 'sigma1': 1, 'sigma2': 3, 'frac': 0.6}
-print(model.fit({'x': xs}, init))
+# Generate data
+xs = np.linspace(0, 2, 20)
+ys = 0.5 * xs + 0.3 + np.random.normal(0, 0.1, 20)
+
+# Fit model to data
+result = model.fit({'x': xs, 'y': ys}, {'a': 1, 'b': 1, 'sigma': 1})
+print(result)
 ```
 

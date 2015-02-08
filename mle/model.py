@@ -1,11 +1,12 @@
 
 from scipy.optimize import minimize
-from theano import function, scan
+from theano import function, scan, gof
 import theano.tensor as T
 from numpy import inf, array, ndarray
 from numpy.core.records import recarray
 import numpy as np
 import logging
+from itertools import chain
 
 from .util import hessian_, memoize
 
@@ -14,26 +15,12 @@ __all__ = ['Model']
 class Model(object):
     def __init__(self):
         self.exprs = dict()
-        self.subdists = dict()
+        self.submodels = dict()
 
-        self._add_compiled_expr('logp', self._logp())
-        self._add_compiled_expr('pdf', T.exp(self._logp()))
-        self._add_compiled_expr('cdf', self._cdf())
-        self._add_compiled_expr('grad_logp', T.grad(self._logp()))
-        self._add_compiled_expr('hess_logp', hessian_(self._logp()))
-
-    def get_observed(self):
-        pass
-    
-    def get_params(self):
-        pass
-
-    def fit(self, data, init, method='L-BFGS-B'):
-        obs = self.get_observed()
-        params = self.get_params()
-
+    def fit(self, data, init, method='BFGS'):
+        
         data_args = []
-        for var in variables:
+        for var in self.observed:
             if type(data) is ndarray or type(data) is recarray:
                 if var.name not in data.dtype.names:
                     raise ValueError('Random variable {} required by model not found in dataset'.format(var.name))
@@ -43,19 +30,22 @@ class Model(object):
             data_args.append(np.array(data[var.name]))
 
         x0 = []
-        for par in params:
+        for par in self.parameters:
             if par.name not in init:
                 raise ValueError('No initial value specified for Parameter {}'.format(par.name))
             x0.append(init[par.name])
 
-        func = lambda pars: self.logp(data_args + list(pars))
-        grad_func = lambda pars: self.grad_logp(data_args + list(pars))
+        logp = function(self.observed + self.parameters, -T.sum(self._logp))
+        g_logp = function(self.observed + self.parameters, T.grad(-T.sum(self._logp), self.parameters))
+
+        func = lambda pars: logp(*(data_args + list(pars)))
+        g_func = lambda pars: np.array(g_logp(*(data_args + list(pars))))
 
         logging.info('Minimizing negative log-likelihood of model...')
-        results = minimize(func, method=method, jac=grad_func, x0=x0)
+        results = minimize(func, method=method, jac=g_func, x0=x0, options={'disp':True})
 
         ret = dict()
-        for par, val in zip(parameters, results['x']):
+        for par, val in zip(self.parameters, results['x']):
             ret[par.name] = val
 
         results.x = ret
@@ -71,19 +61,26 @@ class Model(object):
     def _add_compiled_expr(self, name, expr):
 
         @memoize
-        def compile(model):
+        def compile():
             logging.info('Compiling {}...'.format(name))
-            obs = model.get_observed()
-            params = model.get_params()
-            return function(obs + params, allow_input_downcast=True)
+            return function(self.observed + self.parameters, expr, allow_input_downcast=True)
 
         setattr(self, 'compile_' + name, compile)
 
-        @property
         def compiled(model, *args):
             compiler = getattr(self, 'compile_' + name)
             func = compiler()
             return func(*args)
         
         setattr(self, name, compiled)
+
+    @property
+    def observed(self):
+        result = gof.graph.inputs([self._logp])
+        return filter(lambda x: isinstance(x, T.TensorVariable) and x._observed, result)
+
+    @property
+    def parameters(self):
+        result = gof.graph.inputs([self._logp])
+        return filter(lambda x: isinstance(x, T.TensorVariable) and not x._observed, result)
 
