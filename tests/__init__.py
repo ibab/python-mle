@@ -92,3 +92,17 @@ def test_linear_regression():
     results = model.fit({'x': xs, 'y':ys}, {'a': 2, 'b': 1, 'sigma': 1})
     print(results)
 
+def test_pdf_product():
+    """
+    Check if PDF models can be joined
+    """
+    from mle import var, Normal, Join
+    var('x', observed=True)
+    var('y', observed=True)
+    var('mu')
+    var('sigma')
+
+    model = Join(Normal(x, mu, sigma), Normal(y, mu, sigma))
+    assert(model.observed == [x, y])
+
+
