@@ -53,14 +53,21 @@ def test_simple_fit():
     from mle import Normal, var
     import numpy as np
 
-    x = vec('x', observed=True)
+    x = var('x', vector=True, observed=True)
     mu = var('mu')
     sigma = var('sigma')
 
     dist = Normal(x, mu, sigma)
     np.random.seed(42)
-    data = dist.sample(1e6, {'mu': 0, 'sigma': 1})
-    results = dist.fit(data, {'mu': 1, 'sigma': 2}, method='L-BFGS-B')
+    try:
+        data = dist.sample(1e6, {'mu': 0, 'sigma': 1})
+    except:
+        assert False, 'Generating data failed'
+        
+    try:
+        results = dist.fit(data, {'mu': 1, 'sigma': 2}, method='BFGS')
+    except:
+        assert False, 'Fitting generated data failed'
 
 def test_linear_regression():
     """

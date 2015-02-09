@@ -29,24 +29,34 @@ class Model(object):
                     raise ValueError('Random variable {} required by model not found in dataset'.format(var.name))
             data_args.append(np.array(data[var.name]))
 
+        const = []
         x0 = []
         for par in self.parameters:
             if par.name not in init:
                 raise ValueError('No initial value specified for Parameter {}'.format(par.name))
-            x0.append(init[par.name])
+            if par._const:
+                const.append(init[par.name])
+            else:
+                x0.append(init[par.name])
 
-        logp = function(self.observed + self.parameters, -T.sum(self._logp))
-        g_logp = function(self.observed + self.parameters, T.grad(-T.sum(self._logp), self.parameters))
+        print(data_args)
+        print(const)
+        print(x0)
 
-        func = lambda pars: logp(*(data_args + list(pars)))
-        g_func = lambda pars: np.array(g_logp(*(data_args + list(pars))))
+        logp = function(self.observed + self.constant + self.floating, -T.sum(self._logp))
+        g_logp = function(self.observed + self.constant + self.floating, T.grad(-T.sum(self._logp), self.floating))
+
+        func = lambda pars: logp(*(data_args + const + list(pars)))
+        g_func = lambda pars: np.array(g_logp(*(data_args + const + list(pars))))
 
         logging.info('Minimizing negative log-likelihood of model...')
         results = minimize(func, method=method, jac=g_func, x0=x0, options={'disp':True})
 
         ret = dict()
-        for par, val in zip(self.parameters, results['x']):
-            ret[par.name] = val
+        for flt, val in zip(self.floating, results['x']):
+            ret[flt.name] = val
+        for cst, val in zip(self.constant, const):
+            ret[cst.name] = val
 
         results.x = ret
 
@@ -83,4 +93,14 @@ class Model(object):
     def parameters(self):
         result = gof.graph.inputs([self._logp])
         return filter(lambda x: isinstance(x, T.TensorVariable) and not x._observed, result)
+
+    @property
+    def constant(self):
+        result = gof.graph.inputs([self._logp])
+        return filter(lambda x: isinstance(x, T.TensorVariable) and not x._observed and x._const, result)
+
+    @property
+    def floating(self):
+        result = gof.graph.inputs([self._logp])
+        return filter(lambda x: isinstance(x, T.TensorVariable) and not x._const, result)
 
