@@ -2,8 +2,6 @@
 
 [![Build Status](https://travis-ci.org/ibab/python-mle.svg?branch=master)](https://travis-ci.org/ibab/python-mle)
 
-[![Join the chat at https://gitter.im/ibab/python-mle](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/ibab/python-mle?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
-
 A Python package for performing Maximum Likelihood Estimates.
 
 Inspired by [RooFit](https://root.cern.ch/drupal/content/roofit) and [pymc](https://github.com/pymc-devs/pymc).
