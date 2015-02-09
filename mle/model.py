@@ -39,10 +39,6 @@ class Model(object):
             else:
                 x0.append(init[par.name])
 
-        print(data_args)
-        print(const)
-        print(x0)
-
         logp = function(self.observed + self.constant + self.floating, -T.sum(self._logp))
         g_logp = function(self.observed + self.constant + self.floating, T.grad(-T.sum(self._logp), self.floating))
 
