@@ -40,3 +40,21 @@ result = model.fit({'x': xs, 'y': ys}, {'a': 1, 'b': 1, 'sigma': 1})
 print(result)
 ```
 
+```
+Optimization terminated successfully.
+         Current function value: -21.632165
+         Iterations: 25
+         Function evaluations: 38
+         Gradient evaluations: 38
+   status: 0
+  success: True
+     njev: 38
+     nfev: 38
+ hess_inv: array([[  1.55949709e-04,  -2.06891597e-06,   4.52439923e-06],
+       [ -2.06891597e-06,   8.94222021e-04,  -8.85856496e-04],
+       [  4.52439923e-06,  -8.85856496e-04,   1.21017793e-03]])
+      fun: -21.632165325132977
+        x: {'a': 0.44739489680783401, 'b': 0.31133017710324606, 'sigma': 0.082040126713057424}
+  message: 'Optimization terminated successfully.'
+      jac: array([ -8.72776888e-07,   5.92010624e-08,   8.06620475e-08])
+```
