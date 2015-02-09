@@ -44,9 +44,12 @@ class Mix2(Model):
         self._add_submodel('dist2', dist2)
 
 class Join(Model):
-    def __init__(self, dist1, dist2, *args, **kwargs):
+    def __init__(self, dist1, dist2=None, *args, **kwargs):
         super(Join, self).__init__(*args, **kwargs)
         self._add_submodel('dist1', dist1)
-        self._add_submodel('dist2', dist2)
-        self._logp = dist1._logp + dist2._logp
+        if dist2 is None:
+            self._logp = T.sum(dist1._logp)
+        else:
+            self._add_submodel('dist2', dist2)
+            self._logp = dist1._logp + dist2._logp
 

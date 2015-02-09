@@ -97,12 +97,12 @@ def test_pdf_product():
     Check if PDF models can be joined
     """
     from mle import var, Normal, Join
-    x = var('x', observed=True)
+    x = var('x', vector=True, observed=True)
     y = var('y', observed=True)
     mu = var('mu')
     sigma = var('sigma')
 
-    model = Join(Normal(x, mu, sigma), Normal(y, mu, sigma))
+    model = Join(Join(Normal(x, mu, sigma)), Normal(y, mu, sigma))
     assert(model.observed == [x, y])
 
 
