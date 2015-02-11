@@ -1,12 +1,13 @@
 
 from scipy.optimize import minimize
-from theano import function, scan, gof
+from theano import function, scan, gof, shared, config
 import theano.tensor as T
 from numpy import inf, array, ndarray
 from numpy.core.records import recarray
 import numpy as np
 import logging
 from itertools import chain
+from time import clock
 
 from .util import hessian_, memoize
 
@@ -20,6 +21,7 @@ class Model(object):
     def fit(self, data, init, method='BFGS'):
         
         data_args = []
+        shared_params = []
         for var in self.observed:
             if type(data) is ndarray or type(data) is recarray:
                 if var.name not in data.dtype.names:
@@ -28,6 +30,7 @@ class Model(object):
                 if var.name not in data:
                     raise ValueError('Random variable {} required by model not found in dataset'.format(var.name))
             data_args.append(np.array(data[var.name]))
+            shared_params.append((var, shared(data[var.name].astype(config.floatX), borrow=True)))
 
         const = []
         x0 = []
@@ -39,14 +42,17 @@ class Model(object):
             else:
                 x0.append(init[par.name])
 
-        logp = function(self.observed + self.constant + self.floating, -T.sum(self._logp))
-        g_logp = function(self.observed + self.constant + self.floating, T.grad(-T.sum(self._logp), self.floating))
+        logp = function(self.constant + self.floating, -T.sum(self._logp), givens=shared_params, allow_input_downcast=True)
+        g_logp = function(self.constant + self.floating, T.grad(-T.sum(self._logp), self.floating), givens=shared_params, allow_input_downcast=True)
 
-        func = lambda pars: logp(*(data_args + const + list(pars)))
-        g_func = lambda pars: np.array(g_logp(*(data_args + const + list(pars))))
+        func = lambda pars: logp(*(const + list(pars)))
+        g_func = lambda pars: np.array(g_logp(*(const + list(pars))))
 
         logging.info('Minimizing negative log-likelihood of model...')
+        start = clock()
         results = minimize(func, method=method, jac=g_func, x0=x0, options={'disp':True})
+        fit_time = clock() - start
+        results['fit_time'] = fit_time
 
         ret = dict()
         for flt, val in zip(self.floating, results['x']):
