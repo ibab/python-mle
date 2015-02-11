@@ -8,6 +8,7 @@ import numpy as np
 import logging
 from itertools import chain
 from time import clock
+from .minuit import *
 
 from .util import hessian_, memoize
 
@@ -50,17 +51,13 @@ class Model(object):
 
         logging.info('Minimizing negative log-likelihood of model...')
         start = clock()
-        results = minimize(func, method=method, jac=g_func, x0=x0, options={'disp':True})
+        m_results = fmin_minuit(func, map(str, self.floating), x0)
+        results = dict()
         fit_time = clock() - start
         results['fit_time'] = fit_time
 
         ret = dict()
-        for flt, val in zip(self.floating, results['x']):
-            ret[flt.name] = val
-        for cst, val in zip(self.constant, const):
-            ret[cst.name] = val
-
-        results.x = ret
+        results['x'] = m_results.values
 
         return results
 
@@ -105,3 +102,4 @@ class Model(object):
     def floating(self):
         result = gof.graph.inputs([self._logp])
         return list(filter(lambda x: isinstance(x, T.TensorVariable) and not x._const, result))
+
