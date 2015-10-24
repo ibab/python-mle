@@ -89,20 +89,19 @@ class Model(object):
     @property
     def observed(self):
         result = gof.graph.inputs([self._logp])
-        return filter(lambda x: isinstance(x, T.TensorVariable) and x._observed, result)
+        return list(filter(lambda x: isinstance(x, T.TensorVariable) and x._observed, result))
 
     @property
     def parameters(self):
         result = gof.graph.inputs([self._logp])
-        return filter(lambda x: isinstance(x, T.TensorVariable) and not x._observed, result)
+        return list(filter(lambda x: isinstance(x, T.TensorVariable) and not x._observed, result))
 
     @property
     def constant(self):
         result = gof.graph.inputs([self._logp])
-        return filter(lambda x: isinstance(x, T.TensorVariable) and not x._observed and x._const, result)
+        return list(filter(lambda x: isinstance(x, T.TensorVariable) and not x._observed and x._const, result))
 
     @property
     def floating(self):
         result = gof.graph.inputs([self._logp])
-        return filter(lambda x: isinstance(x, T.TensorVariable) and not x._const, result)
-
+        return list(filter(lambda x: isinstance(x, T.TensorVariable) and not x._const, result))
