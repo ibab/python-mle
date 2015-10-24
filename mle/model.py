@@ -18,8 +18,7 @@ class Model(object):
         self.exprs = dict()
         self.submodels = dict()
 
-    def fit(self, data, init, method='BFGS'):
-        
+    def fit(self, data, init, method='BFGS', verbose=False):
         data_args = []
         shared_params = []
         for var in self.observed:
@@ -50,17 +49,15 @@ class Model(object):
 
         logging.info('Minimizing negative log-likelihood of model...')
         start = clock()
-        results = minimize(func, method=method, jac=g_func, x0=x0, options={'disp':True})
+
+        if method.upper() == 'MINUIT':
+            from .minuit import fmin_minuit 
+            results = fmin_minuit(func, x0, map(str, self.floating), verbose=verbose)
+        else:
+            results = minimize(func, method=method, jac=g_func, x0=x0, options={'disp':True})
+
         fit_time = clock() - start
         results['fit_time'] = fit_time
-
-        ret = dict()
-        for flt, val in zip(self.floating, results['x']):
-            ret[flt.name] = val
-        for cst, val in zip(self.constant, const):
-            ret[cst.name] = val
-
-        results.x = ret
 
         return results
 
@@ -105,3 +102,4 @@ class Model(object):
     def floating(self):
         result = gof.graph.inputs([self._logp])
         return list(filter(lambda x: isinstance(x, T.TensorVariable) and not x._const, result))
+
