@@ -8,7 +8,6 @@ import numpy as np
 import logging
 from itertools import chain
 from time import clock
-from .minuit import *
 
 from .util import hessian_, memoize
 
@@ -20,7 +19,6 @@ class Model(object):
         self.submodels = dict()
 
     def fit(self, data, init, method='BFGS', verbose=False):
-        
         data_args = []
         shared_params = []
         for var in self.observed:
@@ -53,6 +51,7 @@ class Model(object):
         start = clock()
 
         if method.upper() == 'MINUIT':
+            from .minuit import fmin_minuit 
             results = fmin_minuit(func, x0, map(str, self.floating), verbose=verbose)
         else:
             results = minimize(func, method=method, jac=g_func, x0=x0, options={'disp':True})
