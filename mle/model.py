@@ -19,7 +19,7 @@ class Model(object):
         self.exprs = dict()
         self.submodels = dict()
 
-    def fit(self, data, init, method='BFGS'):
+    def fit(self, data, init, method='BFGS', verbose=False):
         
         data_args = []
         shared_params = []
@@ -51,13 +51,14 @@ class Model(object):
 
         logging.info('Minimizing negative log-likelihood of model...')
         start = clock()
-        m_results = fmin_minuit(func, map(str, self.floating), x0)
-        results = dict()
+
+        if method.upper() == 'MINUIT':
+            results = fmin_minuit(func, x0, map(str, self.floating), verbose=verbose)
+        else:
+            results = minimize(func, method=method, jac=g_func, x0=x0, options={'disp':True})
+
         fit_time = clock() - start
         results['fit_time'] = fit_time
-
-        ret = dict()
-        results['x'] = m_results.values
 
         return results
 
