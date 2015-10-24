@@ -4,7 +4,7 @@ python:
   - 3.4
 notifications:
   email: false
- 
+
 # Setup anaconda
 before_install:
   - wget http://repo.continuum.io/miniconda/Miniconda-latest-Linux-x86_64.sh -O miniconda.sh
@@ -15,16 +15,15 @@ before_install:
   # The next couple lines fix a crash with multiprocessing on Travis and are not specific to using Miniconda
   - sudo rm -rf /dev/shm
   - sudo ln -s /run/shm /dev/shm
+
 # Install packages
 install:
-  - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib nose pip
-  - pip install theano
+  - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib nose pip theano
   - pip install coverage coveralls
- 
+
 # Run test
 script:
   - nosetests --with-coverage --logging-level=INFO
 
 after_success:
   - coveralls
- 
