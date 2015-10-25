@@ -81,7 +81,7 @@ class Model(object):
             if np.isinf(val):
                 return 1e6 
             else:
-                return val - N * math.log(normalization(const + list(pars)))
+                return val + N * math.log(normalization(const + list(pars)))
 
         def g_func(pars):
             return np.array(g_logp(*(const + list(pars))))
