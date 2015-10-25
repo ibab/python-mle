@@ -90,7 +90,7 @@ class Model(object):
         start = clock()
         if method.upper() == 'MINUIT':
             from .minuit import fmin_minuit
-            results = fmin_minuit(func, x0, map(str, self.floating), verbose=verbose)
+            results = fmin_minuit(func, x0, list(map(str, self.floating)), verbose=verbose)
         else:
             results = minimize(func, method=method, jac=g_func, x0=x0, options={'disp': True})
             results.x = {n: x for n, x in zip(names, results.x)}

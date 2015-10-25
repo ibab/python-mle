@@ -27,7 +27,7 @@ def fmin_minuit(func, x0, names=None, verbose=False):
         print_level = 0
 
     if names is None:
-        names = map(lambda x: 'param' + str(x), range(len(x0)))
+        names = list(map(lambda x: 'param' + str(x), range(len(x0))))
     else:
         assert(len(x0) == len(names))
 
