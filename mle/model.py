@@ -61,8 +61,6 @@ class Model(object):
 
         def normalization(parameters):
             ret =  nquad(pdf, bounds, args=parameters)[0]
-            print(bounds)
-            print(ret)
             return ret
 
         logp = function(self.constant + self.floating,
@@ -77,7 +75,6 @@ class Model(object):
 
         def func(pars):
             val = logp(*(const + list(pars)))
-            print(val)
             if np.isinf(val):
                 return 1e6 
             else:
@@ -88,15 +85,27 @@ class Model(object):
 
         logging.info('Minimizing negative log-likelihood of model...')
 
+        names = [x.name for x in self.parameters]
+
         start = clock()
         if method.upper() == 'MINUIT':
             from .minuit import fmin_minuit
             results = fmin_minuit(func, x0, map(str, self.floating), verbose=verbose)
         else:
             results = minimize(func, method=method, jac=g_func, x0=x0, options={'disp': True})
-            names = [x.name for x in self.parameters]
             results.x = {n: x for n, x in zip(names, results.x)}
         fit_time = clock() - start
+
+        estimated_values = [results.x[name] for name in names]
+
+        norm = normalization(estimated_values)
+        results['norm'] = norm
+
+        def plot_func(*args):
+            pdf_v = np.vectorize(pdf, excluded=range(len(args), len(args) + len(estimated_values)))
+            return pdf_v(*(list(args) + estimated_values)) / norm
+
+        results['func'] = plot_func
 
         # Add constant parameters to results
         for par in self.parameters:
