@@ -48,15 +48,22 @@ class Model(object):
         g_func = lambda pars: np.array(g_logp(*(const + list(pars))))
 
         logging.info('Minimizing negative log-likelihood of model...')
-        start = clock()
 
+        start = clock()
         if method.upper() == 'MINUIT':
             from .minuit import fmin_minuit 
             results = fmin_minuit(func, x0, map(str, self.floating), verbose=verbose)
         else:
             results = minimize(func, method=method, jac=g_func, x0=x0, options={'disp':True})
-
+            names = [x.name for x in self.parameters]
+            results.x = {n: x for n, x in zip(names, results.x)}
         fit_time = clock() - start
+
+        # Add constant parameters to results
+        for par in self.parameters:
+            if par._const:
+                results.x[par.name] = init[par.name]
+
         results['fit_time'] = fit_time
 
         return results
