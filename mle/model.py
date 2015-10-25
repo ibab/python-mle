@@ -1,10 +1,12 @@
 import logging
 from time import clock
+import math
 
 import numpy as np
 from scipy.optimize import minimize
 from theano import function, gof, shared, config
 import theano.tensor as T
+from scipy.integrate import nquad
 
 from mle.util import memoize
 
@@ -17,7 +19,8 @@ class Model(object):
         self.submodels = dict()
 
     def fit(self, data, init, method='BFGS', verbose=False):
-        data_args = []
+        bounds = []
+        lengths = []
         shared_params = []
         for var in self.observed:
             try:
@@ -28,8 +31,11 @@ class Model(object):
             except:
                 raise ValueError('The fitted dataset must support string indexing')
 
-            data_args.append(np.array(data[var.name]))
-            shared_params.append((var, shared(data[var.name].astype(config.floatX), borrow=True)))
+            bounds.append((var._lower, var._upper))
+            this_data = np.array(data[var.name])
+            this_data = this_data[(this_data > var._lower) & (this_data < var._upper)]
+            lengths.append(len(this_data))
+            shared_params.append((var, shared(this_data.astype(config.floatX), borrow=True)))
 
         const = []
         x0 = []
@@ -41,13 +47,41 @@ class Model(object):
             else:
                 x0.append(init[par.name])
 
-        logp = function(self.constant + self.floating, -T.sum(self._logp),
-                        givens=shared_params, allow_input_downcast=True)
-        g_logp = function(self.constant + self.floating, T.grad(-T.sum(self._logp), self.floating),
-                          givens=shared_params, allow_input_downcast=True)
+        scalars = [T.dscalar(x.name) for x in self.observed]
+        toscalar = list(zip(self.observed, scalars))
+
+        pdf = function(scalars + self.constant + self.floating,
+                T.exp(self._logp),
+                givens=toscalar,
+                rebuild_strict=False,
+                allow_input_downcast=True)
+
+        assert(len(set(lengths)) == 1)
+        N = lengths[0]
+
+        def normalization(parameters):
+            ret =  nquad(pdf, bounds, args=parameters)[0]
+            print(bounds)
+            print(ret)
+            return ret
+
+        logp = function(self.constant + self.floating,
+                -T.sum(self._logp),
+                givens=shared_params,
+                allow_input_downcast=True)
+
+        g_logp = function(self.constant + self.floating,
+                T.grad(-T.sum(self._logp), self.floating),
+                givens=shared_params,
+                allow_input_downcast=True)
 
         def func(pars):
-            return logp(*(const + list(pars)))
+            val = logp(*(const + list(pars)))
+            print(val)
+            if np.isinf(val):
+                return 1e6 
+            else:
+                return val - N * math.log(normalization(const + list(pars)))
 
         def g_func(pars):
             return np.array(g_logp(*(const + list(pars))))

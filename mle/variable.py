@@ -20,7 +20,7 @@ def var(name, label=None, observed=False, const=False, vector=False, lower=None,
     var._label = label
     var._observed = observed
     var._const = observed or const
-    var._lower = lower or -np.inf
-    var._upper = upper or np.inf
+    var._lower = -np.inf if lower is None else lower
+    var._upper = np.inf if upper is None else upper
 
     return var
