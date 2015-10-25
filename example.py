@@ -1,6 +1,5 @@
-
 import numpy as np
-from mle import *
+from mle import var, Normal
 
 # Define model
 x = var('x', observed=True, vector=True)
@@ -19,4 +18,3 @@ ys = 0.5 * xs + 0.3 + np.random.normal(0, 0.1, 20)
 # Fit model to data
 result = model.fit({'x': xs, 'y': ys}, {'a': 1, 'b': 1, 'sigma': 1})
 print(result)
-

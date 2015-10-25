@@ -1,5 +1,3 @@
-from nose.tools import raises
-
 def test_formula_transform():
     """
     Check if variables can be added/multiplied/transformed.
@@ -11,7 +9,8 @@ def test_formula_transform():
     a = var('a')
     b = var('b')
 
-    formula = a * x**2 + b
+    a * x**2 + b
+
 
 def test_const():
     """
@@ -30,6 +29,7 @@ def test_const():
     results = model.fit({'x': data}, {'mu': 1, 'sigma': 1})
     assert(results.x['mu'] == 1)
 
+
 # @raises(ValueError)
 # def test_error_on_illegal_bound():
 #     """
@@ -45,6 +45,7 @@ def test_const():
 #     sigma = var('sigma', lower=-1)
 
 #     Normal(x, mu, sigma)
+
 
 def test_simple_fit():
     """
@@ -63,9 +64,10 @@ def test_simple_fit():
     data = np.random.normal(0, 1, 100000)
 
     try:
-        results = dist.fit({'x': data}, {'mu': 1, 'sigma': 2}, method='BFGS')
+        dist.fit({'x': data}, {'mu': 1, 'sigma': 2}, method='BFGS')
     except:
         assert False, 'Fitting generated data failed'
+
 
 def test_linear_regression():
     """
@@ -87,8 +89,9 @@ def test_linear_regression():
     xs = np.linspace(0, 1, 20)
     ys = 0.5 * xs - 0.3 + np.random.normal(0, 0.2, 20)
 
-    results = model.fit({'x': xs, 'y':ys}, {'a': 2, 'b': 1, 'sigma': 1})
+    results = model.fit({'x': xs, 'y': ys}, {'a': 2, 'b': 1, 'sigma': 1})
     print(results)
+
 
 def test_pdf_product():
     """
@@ -102,5 +105,3 @@ def test_pdf_product():
 
     model = Join(Join(Normal(x, mu, sigma)), Normal(y, mu, sigma))
     assert(model.observed == [x, y])
-
-

@@ -19,11 +19,10 @@ before_install:
 # Install packages
 install:
   - conda install --yes python=$TRAVIS_PYTHON_VERSION atlas numpy scipy matplotlib nose pip theano flake8
-  - pip install coverage coveralls pep257
+  - pip install coverage coveralls
 
 before_script:
   - flake8 --max-line-length=99 .
-  - pep257 .
 
 # Run test
 script:

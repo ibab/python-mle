@@ -1,8 +1,8 @@
-
 import theano.tensor as T
 import numpy as np
 
 __all__ = ['var']
+
 
 def var(name, label=None, observed=False, const=False, vector=False, lower=None, upper=None):
     if vector and not observed:
@@ -19,19 +19,8 @@ def var(name, label=None, observed=False, const=False, vector=False, lower=None,
     var._name = name
     var._label = label
     var._observed = observed
-    if observed:
-        var._const = True
-    else:
-        var._const = const
-    if lower is None:
-        var._lower = -np.inf
-    else:
-        var._lower = lower
-    if upper is None:
-        var._upper = np.inf
-    else:
-        var._upper = upper
+    var._const = observed or const
+    var._lower = lower or -np.inf
+    var._upper = upper or np.inf
 
     return var
-
-

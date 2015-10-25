@@ -1,17 +1,15 @@
-
-from scipy.optimize import minimize
-from theano import function, scan, gof, shared, config
-import theano.tensor as T
-from numpy import inf, array, ndarray
-from numpy.core.records import recarray
-import numpy as np
 import logging
-from itertools import chain
 from time import clock
 
-from .util import hessian_, memoize
+import numpy as np
+from scipy.optimize import minimize
+from theano import function, gof, shared, config
+import theano.tensor as T
+
+from mle.util import memoize
 
 __all__ = ['Model']
+
 
 class Model(object):
     def __init__(self):
@@ -22,12 +20,14 @@ class Model(object):
         data_args = []
         shared_params = []
         for var in self.observed:
-            if type(data) is ndarray or type(data) is recarray:
-                if var.name not in data.dtype.names:
-                    raise ValueError('Random variable {} required by model not found in dataset'.format(var.name))
-            else:
-                if var.name not in data:
-                    raise ValueError('Random variable {} required by model not found in dataset'.format(var.name))
+            try:
+                data[var.name]
+            except KeyError:
+                raise ValueError('Random variable {} required by model not found in dataset'
+                                 .format(var.name))
+            except:
+                raise ValueError('The fitted dataset must support string indexing')
+
             data_args.append(np.array(data[var.name]))
             shared_params.append((var, shared(data[var.name].astype(config.floatX), borrow=True)))
 
@@ -41,20 +41,25 @@ class Model(object):
             else:
                 x0.append(init[par.name])
 
-        logp = function(self.constant + self.floating, -T.sum(self._logp), givens=shared_params, allow_input_downcast=True)
-        g_logp = function(self.constant + self.floating, T.grad(-T.sum(self._logp), self.floating), givens=shared_params, allow_input_downcast=True)
+        logp = function(self.constant + self.floating, -T.sum(self._logp),
+                        givens=shared_params, allow_input_downcast=True)
+        g_logp = function(self.constant + self.floating, T.grad(-T.sum(self._logp), self.floating),
+                          givens=shared_params, allow_input_downcast=True)
 
-        func = lambda pars: logp(*(const + list(pars)))
-        g_func = lambda pars: np.array(g_logp(*(const + list(pars))))
+        def func(pars):
+            return logp(*(const + list(pars)))
+
+        def g_func(pars):
+            return np.array(g_logp(*(const + list(pars))))
 
         logging.info('Minimizing negative log-likelihood of model...')
 
         start = clock()
         if method.upper() == 'MINUIT':
-            from .minuit import fmin_minuit 
+            from .minuit import fmin_minuit
             results = fmin_minuit(func, x0, map(str, self.floating), verbose=verbose)
         else:
-            results = minimize(func, method=method, jac=g_func, x0=x0, options={'disp':True})
+            results = minimize(func, method=method, jac=g_func, x0=x0, options={'disp': True})
             names = [x.name for x in self.parameters]
             results.x = {n: x for n, x in zip(names, results.x)}
         fit_time = clock() - start
@@ -77,36 +82,35 @@ class Model(object):
     def _add_compiled_expr(self, name, expr):
 
         @memoize
-        def compile():
+        def compiler():
             logging.info('Compiling {}...'.format(name))
             return function(self.observed + self.parameters, expr, allow_input_downcast=True)
 
-        setattr(self, 'compile_' + name, compile)
+        setattr(self, 'compile_' + name, compiler)
 
         def compiled(model, *args):
             compiler = getattr(self, 'compile_' + name)
             func = compiler()
             return func(*args)
-        
+
         setattr(self, name, compiled)
 
     @property
+    def variables(self):
+        return filter(lambda x: isinstance(x, T.TensorVariable), gof.graph.inputs([self._logp]))
+
+    @property
     def observed(self):
-        result = gof.graph.inputs([self._logp])
-        return list(filter(lambda x: isinstance(x, T.TensorVariable) and x._observed, result))
+        return list(filter(lambda x: x._observed, self.variables))
 
     @property
     def parameters(self):
-        result = gof.graph.inputs([self._logp])
-        return list(filter(lambda x: isinstance(x, T.TensorVariable) and not x._observed, result))
+        return list(filter(lambda x: not x._observed, self.variables))
 
     @property
     def constant(self):
-        result = gof.graph.inputs([self._logp])
-        return list(filter(lambda x: isinstance(x, T.TensorVariable) and not x._observed and x._const, result))
+        return list(filter(lambda x: not x._observed and x._const, self.variables))
 
     @property
     def floating(self):
-        result = gof.graph.inputs([self._logp])
-        return list(filter(lambda x: isinstance(x, T.TensorVariable) and not x._const, result))
-
+        return list(filter(lambda x: not x._const, self.variables))
