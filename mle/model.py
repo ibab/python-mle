@@ -50,33 +50,32 @@ class Model(object):
         scalars = [T.dscalar(x.name) for x in self.observed]
         toscalar = list(zip(self.observed, scalars))
 
-        pdf = function(scalars + self.constant + self.floating,
-                T.exp(self._logp),
-                givens=toscalar,
-                rebuild_strict=False,
-                allow_input_downcast=True)
+        pdf = function(
+            scalars + self.constant + self.floating, T.exp(self._logp),
+            givens=toscalar, rebuild_strict=False, allow_input_downcast=True
+        )
 
         assert(len(set(lengths)) == 1)
         N = lengths[0]
 
         def normalization(parameters):
-            ret =  nquad(pdf, bounds, args=parameters)[0]
+            ret = nquad(pdf, bounds, args=parameters)[0]
             return ret
 
-        logp = function(self.constant + self.floating,
-                -T.sum(self._logp),
-                givens=shared_params,
-                allow_input_downcast=True)
+        logp = function(
+            self.constant + self.floating, -T.sum(self._logp),
+            givens=shared_params, allow_input_downcast=True
+        )
 
-        g_logp = function(self.constant + self.floating,
-                T.grad(-T.sum(self._logp), self.floating),
-                givens=shared_params,
-                allow_input_downcast=True)
+        g_logp = function(
+            self.constant + self.floating, T.grad(-T.sum(self._logp), self.floating),
+            givens=shared_params, allow_input_downcast=True
+        )
 
         def func(pars):
             val = logp(*(const + list(pars)))
             if np.isinf(val):
-                return 1e6 
+                return 1e6
             else:
                 return val + N * math.log(normalization(const + list(pars)))
 
