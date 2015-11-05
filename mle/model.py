@@ -8,7 +8,7 @@ from scipy.optimize import minimize
 from theano import function, gof, shared, config
 import theano.tensor as T
 
-from mle.util import memoize
+from mle import util
 
 __all__ = ['Model']
 
@@ -117,6 +117,8 @@ class Model(object):
 
         results['func'] = plot_func
 
+        results.plot = util.make_plotter(data, results, self.observed)
+
         # Add constant parameters to results
         for par in self.parameters:
             if par._const:
@@ -134,7 +136,7 @@ class Model(object):
 
     def _add_compiled_expr(self, name, expr):
 
-        @memoize
+        @util.memoize
         def compiler():
             logging.info('Compiling {}...'.format(name))
             return function(self.observed + self.parameters, expr, allow_input_downcast=True)

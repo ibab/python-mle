@@ -1,5 +1,9 @@
+import collections
 import functools
 
+from matplotlib import pylab
+import numpy as np
+from scipy import integrate
 from theano import Variable, scan
 from theano.tensor import arange, grad, stack
 from theano.gradient import format_as
@@ -78,3 +82,65 @@ def hashable(a):
         return tuple(map(hashable, a))
     except:
         return a
+
+
+def make_plotter(data, results, observables):
+    """Make a plot function for `results`."""
+    assert(len(observables) == 1)
+    observable = observables[0]
+
+    # TODO Find a nicer solution to having this wrapper
+    def _pdf(data):
+        if isinstance(data, collections.Iterable):
+            return np.array([_pdf(val) for val in data])
+        else:
+            return float(results['func'](data))
+
+    def _plot(*args, **kwargs):
+        return plot_fitted_hist(_pdf, data, observable, *args, **kwargs)
+
+    return _plot
+
+
+def plot_fitted_hist(pdf, data, observable, nbins=None, lower=None, upper=None, residuals=True):
+    data = data[observable.name]
+    # Configuration
+    nbins = nbins or 100
+    lower = lower or max(observable._lower, min(data))
+    upper = upper or min(observable._upper, max(data))
+
+    figure = pylab.figure(1)
+
+    # Plot the data in a histogram with sqrt(N) error bars
+    figure.add_axes((.1, .3, .8, .8))
+    bin_vals, bin_edges = np.histogram(
+        data[(lower < data) & (data < upper)],
+        bins=np.linspace(lower, upper, nbins+1)
+    )
+    bin_centers = bin_edges[:-1] + 0.5*np.diff(bin_edges)
+    pylab.errorbar(
+        bin_centers, bin_vals,
+        xerr=0.5*np.diff(bin_edges), yerr=np.sqrt(bin_vals), fmt='none'
+    )
+
+    # Plot fitted pdf
+    x = np.linspace(lower, upper, nbins*10)
+    integral = integrate.quad(pdf, lower, upper)[0]
+    correction = sum(bin_vals*np.diff(bin_edges))/integral
+    y = pdf(x)*correction
+
+    pylab.plot(x, y, lw=1.5)
+    pylab.xlim([lower, upper])
+    pylab.tick_params(top='off', right='off', left='off')
+
+    if not residuals:
+        return
+
+    # Make the residual plot
+    figure.add_axes((.1, .04, .8, .2))
+    difference = (pdf(bin_centers)*correction - bin_vals) / np.sqrt(bin_vals)
+    pylab.bar(bin_edges[:-1], difference, np.diff(bin_edges))
+    pylab.xlim([lower, upper])
+    pylab.ylim([-4, 4])
+    pylab.yticks(np.arange(-4, 5, 1))
+    pylab.tick_params(top='off', right='off', left='off')
