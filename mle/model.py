@@ -1,12 +1,12 @@
 import logging
-from time import clock
 import math
+from time import clock
 
 import numpy as np
+from scipy.integrate import nquad
 from scipy.optimize import minimize
 from theano import function, gof, shared, config
 import theano.tensor as T
-from scipy.integrate import nquad
 
 from mle.util import memoize
 
@@ -50,35 +50,45 @@ class Model(object):
         scalars = [T.dscalar(x.name) for x in self.observed]
         toscalar = list(zip(self.observed, scalars))
 
-        pdf = function(scalars + self.constant + self.floating,
-                T.exp(self._logp),
-                givens=toscalar,
-                rebuild_strict=False,
-                allow_input_downcast=True)
+        pdf = function(
+            scalars + self.constant + self.floating, T.exp(self._logp),
+            givens=toscalar, rebuild_strict=False, allow_input_downcast=True
+        )
 
         assert(len(set(lengths)) == 1)
         N = lengths[0]
 
         def normalization(parameters):
-            ret =  nquad(pdf, bounds, args=parameters)[0]
+            ret = nquad(pdf, bounds, args=parameters)[0]
             return ret
 
-        logp = function(self.constant + self.floating,
-                -T.sum(self._logp),
-                givens=shared_params,
-                allow_input_downcast=True)
+        logp = function(
+            self.constant + self.floating, -T.sum(self._logp),
+            givens=shared_params, allow_input_downcast=True
+        )
 
-        g_logp = function(self.constant + self.floating,
-                T.grad(-T.sum(self._logp), self.floating),
-                givens=shared_params,
-                allow_input_downcast=True)
+        g_logp = function(
+            self.constant + self.floating, T.grad(-T.sum(self._logp), self.floating),
+            givens=shared_params, allow_input_downcast=True
+        )
 
         def func(pars):
-            val = logp(*(const + list(pars)))
+            pars = const + list(pars)
+            func.count += 1
+            logging.debug('Starting iteration {} with parameters {}'.format(func.count, pars))
+
+            val = logp(*pars)
             if np.isinf(val):
-                return 1e6 
+                return 1e6
+            logging.debug(' > Unnormalised log-likelihood = {}'.format(val))
+
+            norm = normalization(pars)
+            logging.debug(' > Normalisation = {}'.format(norm))
+            if norm == 0:
+                return np.inf
             else:
-                return val + N * math.log(normalization(const + list(pars)))
+                return val + N*math.log(norm)
+        func.count = 0
 
         def g_func(pars):
             return np.array(g_logp(*(const + list(pars))))
@@ -89,8 +99,8 @@ class Model(object):
 
         start = clock()
         if method.upper() == 'MINUIT':
-            from .minuit import fmin_minuit
-            results = fmin_minuit(func, x0, map(str, self.floating), verbose=verbose)
+            from mle.minuit import fmin_minuit
+            results = fmin_minuit(func, x0, list(map(str, self.floating)), verbose=verbose)
         else:
             results = minimize(func, method=method, jac=g_func, x0=x0, options={'disp': True})
             results.x = {n: x for n, x in zip(names, results.x)}
