@@ -45,7 +45,6 @@ class Normal(Model):
         self._add_expr('mu', mu)
         self._add_expr('sigma', sigma)
 
-
 class Mix2(Model):
     def __init__(self, theta, dist1, dist2, *args, **kwargs):
         super(Mix2, self).__init__(*args, **kwargs)
@@ -58,6 +57,14 @@ class Mix2(Model):
         self._add_submodel('dist1', dist1)
         self._add_submodel('dist2', dist2)
 
+class Extended2(Model):
+    def __init__(self, N1, dist1, N2, dist2, *args, **kwargs):
+        super(Extended2, self).__init__(*args, **kwargs)
+        self._logp = T.log(N1 * T.exp(dist1._logp) + N2 * T.exp(dist2._logp)) - N1 - N2
+        self._add_expr('N1', N1)
+        self._add_expr('N2', N2)
+        self._add_expr('dist1', dist1)
+        self._add_expr('dist2', dist2)
 
 class Join(Model):
     def __init__(self, dist1, dist2=None, *args, **kwargs):
@@ -68,3 +75,4 @@ class Join(Model):
         else:
             self._add_submodel('dist2', dist2)
             self._logp = dist1._logp + dist2._logp
+
