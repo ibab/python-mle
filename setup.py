@@ -7,7 +7,7 @@ setup(name='mle',
       author='Igor Babuschkin',
       author_email='igor@babuschk.in',
       license='MIT',
-      packages=['mle'],
+      packages=['mle', 'mle.distributions'],
       install_requires=[
           'numpy',
           'scipy',
